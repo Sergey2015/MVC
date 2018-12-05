@@ -14,8 +14,6 @@ require $request['model'].'.php';
 //var_dump(runModel($request));
 
 
-
-
 ob_start();
 require $request['model'].'view.php';
 ob_end_flush();
