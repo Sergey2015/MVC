@@ -11,6 +11,7 @@ header("Status: 404 Not Found");
 </head>
 <body>
 <div style="font-size: 30px">Страница не найдена</div>
-<a href="index.php">На главную</a>
+Серверу передан заголовок со статусом 404. Ответ сервера 404
+<br><br><a href="index.php">На главную</a>
 </body>
 </html>
