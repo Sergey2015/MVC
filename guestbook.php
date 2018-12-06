@@ -1,12 +1,14 @@
 <?php
 
 function runmodel($request) {
+    $request = validate($request);
     $data = $request['command']($request);
+   // var_dump($data);
     return $data;
 }
 
 function create($request) {
-
+$request = validate($request);
     if ($_POST) {
    
         //Данные получены в POST, их нужно тщательно проверить,
@@ -14,6 +16,7 @@ function create($request) {
         //нужно написать и вызвать здесь функцию проверки полученных даныых
         $data['user'] = $_POST['user'];
         $data['message'] = $_POST['message'];
+        $data = validate($data);
         if (empty($data['user']) || empty($data['message'])) {
             $data['error'] = 'Все поля должны быть заполнены';
             return $data;
@@ -22,6 +25,7 @@ function create($request) {
             $data['error'] = 'Не удалось подключиться к базе данных';
             return $data;
         }
+
         $data['user'] = mysqli_real_escape_string($mysqli, $data['user']);
         $data['message'] = mysqli_real_escape_string($mysqli, $data['message']);
         $sql = "INSERT INTO guestbook (user, message) VALUES ('{$data['user']}','{$data['message']}')";
@@ -39,10 +43,13 @@ function create($request) {
         $data['user'] = '';
         $data['message'] = '';
     }
+   
+   // var_dump($data);
     return $data;
 }
 
 function read($request) {
+    $request = validate($request);
     if (!$mysqli = connect()) {
         $data['error'] = 'Не удалось подключиться к базе данных';
         return $data;
@@ -53,11 +60,12 @@ function read($request) {
         return $data;
     }
     $row = mysqli_fetch_row($result);
-    echo $itemsCount = $row[0];
+     $itemsCount = $row[0];
 
     mysqli_free_result($result);
     $pagesCount = ceil($itemsCount / ITEMSPERPAGE);
     if ($request['page'] > $pagesCount) {
+        showPage404();
         $data['error'] = 'Запрошенная Вами страница не найдена';
         return $data;
     }
@@ -67,17 +75,22 @@ function read($request) {
         $data['error'] = 'Ошибка запроса сообщений';
         return $data;
     }
+    //$asd = 1;
     $data = mysqli_fetch_all($result, MYSQLI_ASSOC);
 
     mysqli_close($mysqli);
+   // echo "$pagesCount";
+
+
     return $data;
 }
 
 function update($request) {
 //Аналогично create, только для формы нужно данные взять из базы
+     $request = validate($request);
     if ($_GET['command']=="update") {
 
-    
+    $data['id'] = $_GET['id'];
   // var_dump($_REQUEST); 
     if ($_POST) {
         //Данные получены в POST, их нужно тщательно проверить,
@@ -85,7 +98,7 @@ function update($request) {
         //нужно написать и вызвать здесь функцию проверки полученных даныых
         $data['user'] = $_POST['user'];
         $data['message'] = $_POST['message'];
-        $data['id'] = $_GET['id'];
+        
         if (empty($data['user']) || empty($data['message'])) {
             $data['error'] = 'Все поля должны быть заполнены';
             return $data;
@@ -96,6 +109,8 @@ function update($request) {
         }
         $data['user'] = mysqli_real_escape_string($mysqli, $data['user']);
         $data['message'] = mysqli_real_escape_string($mysqli, $data['message']);
+$data = validate($data);
+
         $sql = "UPDATE guestbook SET user='{$data['user']}', message='{$data['message']}' WHERE id='{$data['id']}'";
         if ($result = mysqli_query($mysqli, $sql)) {
 
@@ -107,8 +122,8 @@ function update($request) {
             $data['error'] = 'Не удалось добавить данные';
         }
     } else {
-        
-$sql = "SELECT id, user, message, messagetime FROM guestbook WHERE id='{$_GET['id']}'";
+
+$sql = "SELECT id, user, message, messagetime FROM guestbook WHERE id='{$data['id']}'";
     if (!$mysqli = connect()) {
             $data['error'] = 'Не удалось подключиться к базе данных';
             return $data;
@@ -132,6 +147,7 @@ if (!($result = mysqli_query($mysqli, $sql))) {
 }
 
 function delete($request) {
+    $request = validate($request);
  if ($_GET['command']=="delete") {
     $data['id']=$_GET['id'];
         if (!$mysqli = connect()) {
@@ -167,34 +183,70 @@ function connect() {
 
 
 //пагинация
-
-function showPagination () {
-//define("PARAGRAPHPREPAGE", 10);
-$text = file('text_windows1251.txt');//Считываем полный текст файла в переменную $text
-$paragraphCount = count($text);
-$pagesCount = ceil($paragraphCount / ITEMSPERPAGE);
-$pageNumber = 1;
-if (isset($_GET['page'])) {
-    $pageNumber = intval($_GET['page']);
-}
-if ($pageNumber < 1 || $pageNumber > $pagesCount) {
-    die('Страница не найдена');
-}
-// echo "$pageNumber<br>";
-// echo "$pagesCount";
-$startNumber = ($pageNumber -1) * ITEMSPERPAGE;
-$pageArray = array_slice($text, $startNumber, ITEMSPERPAGE);
-foreach ($pageArray as $paragraph) {
-    $paragraph = mb_convert_encoding($paragraph, 'utf-8', 'Windows-1251');
-    echo "$paragraph<br>";
-}
-for ($i=1; $i <=$pagesCount ; $i++) {
-    if ($i == $pageNumber) {
-        echo "$i ";
-    } else {
-        echo "<a href=\"{$_SERVER['SCRIPT_NAME']}?page=$i\">$i</a> ";
-
-
+//var_dump($request);
+function showPagination ($request) {
+  if (!isset($_GET['page'])) {
+      $_GET['page']=1;
+  }
+   $request = validate($request);
+if (!$mysqli = connect()) {
+        $data['error'] = 'Не удалось подключиться к базе данных';
+        return $data;
     }
+    $sql = 'SELECT COUNT(*) FROM guestbook';
+    if (!($result = mysqli_query($mysqli, $sql))) {
+        $data['error'] = 'Ошибка запроса количества сообщений';
+        return $data;
+    }
+    $row = mysqli_fetch_row($result);
+     $itemsCount = $row[0];
+
+    mysqli_free_result($result);
+    $pagesCount = ceil($itemsCount / ITEMSPERPAGE);
+    
+
+
+for($i=1;$i<=$pagesCount;$i++) {
+   if ($_GET['page'] ==$i) {
+
+   echo "<b>$i</b>";
+}
+else echo '<a href="'.$_SERVER['PHP_SELF'].'?page='.$i.'"> '.$i." </a>\n";
 }
 }
+function showPage404 () {
+     header("Location: 404.php");
+
+exit();
+}
+//$data = ["\"{111}'vv'(222)<script>","dfgdfgdfg"];
+
+function validate ($data) {
+//$data = filter_input_array($data);
+  //  $data = filter_var_array($data);
+   // $data = filter_var($data, FILTER_SANITIZE_STRING);
+    
+    foreach ($data as &$value) {
+        $value = trim($value);
+        $value = strip_tags($value);
+        $value = htmlspecialchars($value);
+       // $data['page'] = "234vddfgdg";
+        if (isset($data['page'])) {
+            $data['page'] = intval($data['page']);
+        }
+        if (isset($data['id'])) {
+            $data['id'] = intval($data['id']);
+        }
+       // echo "$value<br>";
+    }
+
+
+return $data;
+
+}
+
+//var_dump(validate($data));
+
+
+
+
