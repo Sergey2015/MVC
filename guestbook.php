@@ -53,7 +53,8 @@ function read($request) {
         return $data;
     }
     $row = mysqli_fetch_row($result);
-    $itemsCount = $row[0];
+    echo $itemsCount = $row[0];
+
     mysqli_free_result($result);
     $pagesCount = ceil($itemsCount / ITEMSPERPAGE);
     if ($request['page'] > $pagesCount) {
@@ -162,4 +163,38 @@ function connect() {
     if (!mysqli_set_charset($mysqli, 'utf8'))
         return false;
     return $mysqli;
+}
+
+
+//пагинация
+
+function showPagination () {
+//define("PARAGRAPHPREPAGE", 10);
+$text = file('text_windows1251.txt');//Считываем полный текст файла в переменную $text
+$paragraphCount = count($text);
+$pagesCount = ceil($paragraphCount / ITEMSPERPAGE);
+$pageNumber = 1;
+if (isset($_GET['page'])) {
+    $pageNumber = intval($_GET['page']);
+}
+if ($pageNumber < 1 || $pageNumber > $pagesCount) {
+    die('Страница не найдена');
+}
+// echo "$pageNumber<br>";
+// echo "$pagesCount";
+$startNumber = ($pageNumber -1) * ITEMSPERPAGE;
+$pageArray = array_slice($text, $startNumber, ITEMSPERPAGE);
+foreach ($pageArray as $paragraph) {
+    $paragraph = mb_convert_encoding($paragraph, 'utf-8', 'Windows-1251');
+    echo "$paragraph<br>";
+}
+for ($i=1; $i <=$pagesCount ; $i++) {
+    if ($i == $pageNumber) {
+        echo "$i ";
+    } else {
+        echo "<a href=\"{$_SERVER['SCRIPT_NAME']}?page=$i\">$i</a> ";
+
+
+    }
+}
 }

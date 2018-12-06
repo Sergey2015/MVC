@@ -9,3 +9,6 @@ echo "Message: ".$value['message']."<br>";
 
 echo "<a href='{$_SERVER['SCRIPT_NAME']}?model={$request['model']}&command=update&id={$value['id']}'>Изменить сообщение</a><br><br>";
 }
+
+
+
